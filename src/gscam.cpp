@@ -104,6 +104,25 @@ namespace gscam {
       nh_private_.setParam("frame_id",frame_id_);
     }
 
+    // Get diagnostic params. If expected_fps is > 0, diagnostics will be enabled
+    nh_private_.param("diagnostic_fps", expected_fps_, 0.0);
+    nh_private_.param("fps_tolerance", fps_tolerance_, 0.1);
+    nh_private_.param("min_delay", min_delay_, 0.0);
+    nh_private_.param("max_delay", max_delay_, (1.0/expected_fps_)*fps_tolerance_);
+    nh_private_.param("diagnostic_window", diagnostic_window_, 10);
+
+    if (expected_fps_> 0) {
+      ROS_INFO_STREAM("Setting up diagnostics at " << expected_fps_ << " fps.");
+      updater_.setHardwareID(frame_id_);
+      freq_diagnostic_ = std::make_shared<diagnostic_updater::TopicDiagnostic>("camera", updater_,
+        diagnostic_updater::FrequencyStatusParam(
+          &expected_fps_, &expected_fps_, fps_tolerance_, diagnostic_window_),
+        diagnostic_updater::TimeStampStatusParam(0, max_delay_));
+
+      diagnostic_update_timer_ = nh_.createTimer(ros::Duration(1.0),
+        &GSCam::diagnostic_update, this);
+    }
+
     return true;
   }
 
@@ -406,8 +425,17 @@ namespace gscam {
         gst_buffer_unref(buf);
       }
 
+      if (expected_fps_ > 0) {
+        freq_diagnostic_->tick(cinfo->header.stamp);
+        updater_.update();
+      }
+
       ros::spinOnce();
     }
+  }
+
+  void GSCam::diagnostic_update(const ros::TimerEvent&) {
+    updater_.update();
   }
 
   void GSCam::cleanup_stream()
@@ -447,7 +475,7 @@ namespace gscam {
         break;
       }
     }
-
+    ros::shutdown();
   }
 
   // Example callbacks for appsink

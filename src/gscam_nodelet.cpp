@@ -4,7 +4,7 @@
 #include <pluginlib/class_list_macros.h>
 #include <gscam/gscam_nodelet.h>
 
-PLUGINLIB_EXPORT_CLASS(gscam::GSCamNodelet, nodelet::Nodelet) 
+PLUGINLIB_EXPORT_CLASS(gscam::GSCamNodelet, nodelet::Nodelet)
 
 namespace gscam {
   GSCamNodelet::GSCamNodelet() :
@@ -14,7 +14,7 @@ namespace gscam {
   {
   }
 
-  GSCamNodelet::~GSCamNodelet() 
+  GSCamNodelet::~GSCamNodelet()
   {
     stream_thread_->join();
   }
